@@ -1,8 +1,10 @@
-from PyQt5.QtCore import QThread, pyqtSignal
 import time
 
+from PyQt5.QtCore import QThread, pyqtSignal
+
+
 class AutomationThread(QThread):
-    log_signal = pyqtSignal(str)   # 显示到UI
+    log_signal = pyqtSignal(str)  # 显示到UI
     send_signal = pyqtSignal(str)  # 实际发送到串口
     finished_signal = pyqtSignal()
 
@@ -23,7 +25,7 @@ class AutomationThread(QThread):
                 if not self._running:
                     self._log("自动化已停止")
                     break
-                self._log(f"开始第 {loop_idx+1}/{self.loops} 轮")
+                self._log(f"开始第 {loop_idx + 1}/{self.loops} 轮")
                 for cmd in self.cmds:
                     if not self._running:
                         break

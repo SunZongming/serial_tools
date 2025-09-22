@@ -2,23 +2,31 @@ import os
 import platform
 import subprocess
 
-from PyQt5.QtCore import QSettings
-from PyQt5.QtGui import QIcon
+import qtawesome as qta
+from PyQt5.QtCore import QSettings, Qt, QSize
+from PyQt5.QtGui import QPixmap
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTextEdit, QLineEdit, \
-    QListWidget, QListWidgetItem, QSizePolicy, QToolBar, QAction, QDialog, QMainWindow, QMessageBox, QApplication
+    QListWidget, QListWidgetItem, QSizePolicy, QDialog, QMainWindow, QMessageBox, QApplication, \
+    QSpacerItem
 
-from thread.automation_thread import AutomationThread
 from manager.history_manager import HistoryManager
 from manager.log_manager import LogManager
 from manager.serial_manager import SerialManager
+from manager.theme_manager import ThemeManager
+from thread.automation_thread import AutomationThread
 from thread.serial_receiver import SerialReceiver
 from ui.setting_dialog import SettingsDialog
-from manager.theme_manager import ThemeManager
 
 
 class SerialTool(QMainWindow):
     def __init__(self):
         super().__init__()
+
+        # 设置无边框窗口
+        self.setWindowFlags(Qt.FramelessWindowHint | Qt.WindowSystemMenuHint | Qt.WindowTitleHint)
+        # 启用窗口移动
+        self._is_dragging = False
+        self._drag_position = None
 
         # 添加重启标志
         self.need_restart = False
@@ -31,7 +39,7 @@ class SerialTool(QMainWindow):
         self.history = HistoryManager()
         self.log_mgr = LogManager()
         # 设置
-        self.settings = QSettings("../settings.ini", QSettings.IniFormat)
+        self.settings = QSettings("settings.ini", QSettings.IniFormat)
         # 初始化主题管理器
         self.theme_manager = ThemeManager(QApplication.instance())
         # self.update_log_path()
@@ -42,28 +50,6 @@ class SerialTool(QMainWindow):
         # 创建状态栏
         self.statusBar().showMessage("就绪")
 
-        # 创建工具栏
-        toolbar = QToolBar("主工具栏")
-        self.addToolBar(toolbar)
-
-        # 添加设置按钮
-        settings_action = QAction(QIcon(":icon/setting.svg"), "设置", self)
-        settings_action.triggered.connect(self.open_settings)
-        toolbar.addAction(settings_action)
-
-        # 添加串口连接按钮
-        self.connect_action = QAction("连接", self)
-        self.connect_action.triggered.connect(self.toggle_serial)
-        toolbar.addAction(self.connect_action)
-
-        # 添加分隔线
-        toolbar.addSeparator()
-
-        # 添加其他工具按钮
-        clear_action = QAction("清除", self)
-        clear_action.triggered.connect(self.clear_all_history)
-        toolbar.addAction(clear_action)
-
         # 设置中心窗口部件
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
@@ -71,8 +57,10 @@ class SerialTool(QMainWindow):
         # 创建串口UI
         self.setup_serial_ui(central_widget)
 
-        # 初始化时加载一次
+        # 创建自定义标题栏
+        self.setup_custom_titlebar()
 
+        # 初始化时加载一次
         self.load_initial_settings()
         self.refresh_ports()
         self.load_history_ui()
@@ -84,12 +72,16 @@ class SerialTool(QMainWindow):
         # ----------------------串口选择 & 打开 ------------------------------------
         # 串口选择 & 打开
         port_layout = QHBoxLayout()
-        port_layout.addWidget(QLabel("端口:"))
+        port_cb_label = QLabel("端口:")
+        port_cb_label.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
+        port_layout.addWidget(port_cb_label)
         self.port_cb = QComboBox()
+        self.port_cb.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         port_layout.addWidget(self.port_cb)
         # 波特率
         port_layout.addWidget(QLabel("波特率:"))
         self.baudrate_combo = QComboBox()
+        self.baudrate_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.baudrate_combo.addItems(
             ["110", "300", "600", "1200", "2400", "4800", "9600", "14400", "19200", "38400", "56000", "57600", "115200",
              "128000", "230400", "256000", "460800", "921600", ])
@@ -99,18 +91,21 @@ class SerialTool(QMainWindow):
         # 数据位
         port_layout.addWidget(QLabel("数据位:"))
         self.bytesize_combo = QComboBox()
+        self.bytesize_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.bytesize_combo.addItems(["5", "6", "7", "8"])
         self.bytesize_combo.setCurrentText("8")
         port_layout.addWidget(self.bytesize_combo)
         # 校验位
         port_layout.addWidget(QLabel("校验:"))
         self.parity_combo = QComboBox()
+        self.parity_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.parity_combo.addItems(["N", "E", "O", "M", "S"])  # None, Even, Odd, Mark, Space
         self.parity_combo.setCurrentText("N")
         port_layout.addWidget(self.parity_combo)
         # 停止位
         port_layout.addWidget(QLabel("停止位:"))
         self.stopbits_combo = QComboBox()
+        self.stopbits_combo.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         self.stopbits_combo.addItems(["1", "1.5", "2"])
         self.stopbits_combo.setCurrentText("1")
         port_layout.addWidget(self.stopbits_combo)
@@ -225,6 +220,111 @@ class SerialTool(QMainWindow):
 
         central_widget.setLayout(layout)
 
+    # ------------------------- 自定义标题栏 -------------------------
+    def setup_custom_titlebar(self):
+        """创建自定义标题栏"""
+        titlebar_widget = QWidget()
+        titlebar_widget.setObjectName("TitleBar")
+        titlebar_widget.setFixedHeight(30)
+        titlebar_layout = QHBoxLayout(titlebar_widget)
+        titlebar_layout.setContentsMargins(0, 0, 0, 0)
+        titlebar_layout.setSpacing(5)
+
+        self.title_label = QLabel("串口调试工具 V1.0")
+        self.title_label.setPixmap(QPixmap("icon/logo.jpeg").scaled(30, 30))
+        titlebar_layout.addWidget(self.title_label)
+
+        # ⬅️ 在标题栏放工具按钮
+        self.settings_btn = QPushButton("设置")  # ⚙
+        self.settings_btn.setObjectName("SettingsBtn")
+        self.settings_btn.setIcon(qta.icon("fa5s.cog", color=self.theme_manager.get_icon_color()))
+        self.settings_btn.setIconSize(QSize(20, 20))
+        self.settings_btn.setFixedHeight(30)
+        self.settings_btn.clicked.connect(self.open_settings)
+        titlebar_layout.addWidget(self.settings_btn)
+
+        self.connect_btn = QPushButton("连接")  # 🔌
+        self.connect_btn.setObjectName("ConnectBtn")
+        self.connect_btn.setIcon(qta.icon("fa5s.plug", color=self.theme_manager.get_icon_color()))
+        self.connect_btn.setIconSize(QSize(20, 20))
+        self.connect_btn.setFixedHeight(30)
+        self.connect_btn.clicked.connect(self.toggle_serial)
+        titlebar_layout.addWidget(self.connect_btn)
+
+        self.clear_btn = QPushButton("清除")  # 🧹
+        self.clear_btn.setObjectName("ClearBtn")
+        self.clear_btn.setIcon(qta.icon("fa5s.trash", color=self.theme_manager.get_icon_color()))
+        self.clear_btn.setIconSize(QSize(20, 20))
+        self.clear_btn.setFixedHeight(30)
+        self.clear_btn.clicked.connect(self.clear_all_history)
+        titlebar_layout.addWidget(self.clear_btn)
+
+        self.about_btn = QPushButton("关于")
+        self.about_btn.setObjectName("AboutBtn")
+        self.about_btn.setIcon(qta.icon("fa5s.info-circle", color=self.theme_manager.get_icon_color()))
+        self.about_btn.setIconSize(QSize(20, 20))
+        self.about_btn.setFixedHeight(30)
+        self.about_btn.clicked.connect(self.clear_all_history)
+        titlebar_layout.addWidget(self.about_btn)
+
+        titlebar_layout.addSpacerItem(QSpacerItem(40, 20, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        self.minimize_btn = QPushButton("−")
+        self.minimize_btn.setFixedSize(30, 30)
+        self.minimize_btn.setObjectName("MinBtn")
+        self.minimize_btn.clicked.connect(self.showMinimized)
+        titlebar_layout.addWidget(self.minimize_btn)
+
+        self.maximize_btn = QPushButton("□")
+        self.maximize_btn.setFixedSize(30, 30)
+        self.maximize_btn.setObjectName("MaxBtn")
+        self.maximize_btn.clicked.connect(self.toggle_maximize)
+        titlebar_layout.addWidget(self.maximize_btn)
+
+        self.close_btn = QPushButton("×")
+        self.close_btn.setFixedSize(30, 30)
+        self.close_btn.setObjectName("CloseBtn")
+        self.close_btn.clicked.connect(self.close)
+        titlebar_layout.addWidget(self.close_btn)
+
+        self.setMenuWidget(titlebar_widget)
+
+    def toggle_maximize(self):
+        """切换最大化状态"""
+        if self.isMaximized():
+            self.showNormal()
+            self.maximize_btn.setText("□")
+        else:
+            self.showMaximized()
+            self.maximize_btn.setText("❐")
+
+    def mousePressEvent(self, event):
+        """鼠标按下事件"""
+        if event.button() == Qt.LeftButton:
+            # 检查是否点击在标题栏区域
+            if event.pos().y() <= 30:  # 标题栏高度
+                self._is_dragging = True
+                self._drag_position = event.globalPos() - self.frameGeometry().topLeft()
+                event.accept()
+
+    def mouseMoveEvent(self, event):
+        """鼠标移动事件"""
+        if event.buttons() == Qt.LeftButton and self._is_dragging:
+            self.move(event.globalPos() - self._drag_position)
+            event.accept()
+
+    def mouseReleaseEvent(self, event):
+        """鼠标释放事件"""
+        if event.button() == Qt.LeftButton:
+            self._is_dragging = False
+            event.accept()
+
+    def update_toolbar_icons(self):
+        self.settings_btn.setIcon(qta.icon("fa5s.cog", color=self.theme_manager.get_icon_color()))
+        self.connect_btn.setIcon(qta.icon("fa5s.plug", color=self.theme_manager.get_icon_color()))
+        self.clear_btn.setIcon(qta.icon("fa5s.trash", color=self.theme_manager.get_icon_color()))
+        self.about_btn.setIcon(qta.icon("fa5s.info-circle", color=self.theme_manager.get_icon_color()))
+
     # ------------------------ 设置 ------------------------
     def open_settings(self):
         """打开设置对话框"""
@@ -252,6 +352,7 @@ class SerialTool(QMainWindow):
         # 应用主题
         theme = self.settings.value("ui/theme", "系统默认")
         self.theme_manager.apply_theme(theme)
+        self.update_toolbar_icons()
 
         # 显示设置已应用的消息
         self.statusBar().showMessage("设置已应用", 3000)
@@ -274,6 +375,7 @@ class SerialTool(QMainWindow):
             # 应用主题
             theme = self.settings.value("ui/theme", "系统默认")
             self.theme_manager.apply_theme(theme)
+            self.update_toolbar_icons()
         except Exception as e:
             print(f"加载初始设置时出错: {e}")
 
@@ -294,9 +396,15 @@ class SerialTool(QMainWindow):
             # 已经打开 → 关闭
             self.serial.close()
             self.open_btn.setText("打开串口")
+            self.connect_btn.setText("连接")
             self.output.append("串口已关闭")
             self._is_port_open = False
             self.refresh_btn.setEnabled(True)
+            self.port_cb.setEnabled(True)
+            self.baudrate_combo.setEnabled(True)
+            self.bytesize_combo.setEnabled(True)
+            self.parity_combo.setEnabled(True)
+            self.stopbits_combo.setEnabled(True)
             self.statusBar().showMessage("串口已关闭", 2000)
         else:
             # 关闭状态 → 打开
@@ -313,6 +421,7 @@ class SerialTool(QMainWindow):
             try:
                 self.serial.open(port, baud_rate, bytesize, parity, stop_bits)
                 self.open_btn.setText("关闭串口")
+                self.connect_btn.setText("断开")
                 self.output.append(f"串口已打开: {port} @ {baud_rate}, {bytesize}{parity}{stop_bits}")
                 self.log_mgr.write(f"串口已打开: {port} @ {baud_rate}, {bytesize}{parity}{stop_bits}")
                 self.update_log_path()
@@ -320,6 +429,11 @@ class SerialTool(QMainWindow):
                 self.start_receiver()
                 self._is_port_open = True
                 self.refresh_btn.setEnabled(False)
+                self.port_cb.setEnabled(False)
+                self.baudrate_combo.setEnabled(False)
+                self.bytesize_combo.setEnabled(False)
+                self.parity_combo.setEnabled(False)
+                self.stopbits_combo.setEnabled(False)
                 self.statusBar().showMessage(f"串口已打开: {port} @ {baud_rate}, {bytesize}{parity}{stop_bits}")
             except Exception as e:
                 self.output.append(f"❌ 打开失败: {e}")

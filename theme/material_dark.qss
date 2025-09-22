@@ -1,0 +1,105 @@
+/* 全局字体与背景 */
+QWidget {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: "Roboto", "Segoe UI", sans-serif;
+    font-size: 14px;
+}
+
+QWidget#TitleBar {
+    background-color: #1E1E1E;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+}
+QWidget#TitleBar QLabel {
+    color: #cccccc;
+}
+
+/* 按钮 */
+QPushButton {
+    background-color: #1E1E1E;
+    color: #ffffff;
+    border: 1px solid #2C2C2C;
+    border-radius: 6px;
+    padding: 6px 12px;
+}
+QPushButton:hover {
+    background-color: #2A2A2A;
+}
+QPushButton:disabled {
+    color: #888888;
+    background-color: #3A3A3A;
+}
+QPushButton:pressed {
+    background-color: #0D7377;
+}
+
+/* 输入框 */
+QLineEdit, QTextEdit {
+    background-color: #1E1E1E;
+    border: 1px solid #2C2C2C;
+    border-radius: 4px;
+    padding: 4px;
+    color: #ffffff;
+}
+QLineEdit:focus, QTextEdit:focus {
+    border: 1px solid #0D7377;
+}
+
+/* 标签 */
+QLabel {
+    color: #E0E0E0;
+}
+
+/* 下拉框 */
+QComboBox {
+    background-color: #1E1E1E;
+    border: 1px solid #2C2C2C;
+    border-radius: 4px;
+    padding: 4px;
+    color: #ffffff;
+}
+QComboBox:hover {
+    border: 1px solid #0D7377;
+}
+
+/* 滚动条 */
+QScrollBar:vertical {
+    border: none;
+    background: #1E1E1E;
+    width: 10px;
+}
+QScrollBar::handle:vertical {
+    background: #555555;
+    border-radius: 5px;
+}
+QScrollBar::handle:vertical:hover {
+    background: #0D7377;
+}
+
+QPushButton#MinBtn, QPushButton#MaxBtn, QPushButton#CloseBtn {
+    background-color: transparent;
+    font-size: 16px;
+    color: white;
+    padding: 0px;
+    border: none;
+    border-radius: 0px;
+}
+QPushButton#MinBtn:hover, QPushButton#MaxBtn:hover {
+    background-color: #2A2A2A;
+}
+QPushButton#CloseBtn:hover {
+    background-color: #FF0000;
+}
+
+QPushButton#SettingsBtn, QPushButton#ConnectBtn, QPushButton#ClearBtn, QPushButton#AboutBtn {
+    background-color: transparent;
+    font-size: 16px;
+    color: white;
+    padding: 6px 12px;
+    border: none;
+    border-radius: 0px;
+}
+QPushButton#SettingsBtn:hover, QPushButton#ConnectBtn:hover, QPushButton#ClearBtn:hover, QPushButton#AboutBtn:hover {
+    background-color: #2A2A2A;
+}

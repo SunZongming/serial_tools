@@ -102,11 +102,13 @@ class SettingsDialog(QDialog):
         """预览主题效果"""
         if hasattr(self.parent, 'theme_manager'):
             self.parent.theme_manager.apply_theme(self.theme_combo.currentText())
+            self.parent.update_toolbar_icons()
             QMessageBox.information(self, "主题预览",
                                     f"已应用 {self.theme_combo.currentText()} 主题预览。\n"
                                     "点击确定后恢复当前主题。")
             # 恢复原来的主题
             self.parent.theme_manager.apply_theme(self.current_theme)
+            self.parent.update_toolbar_icons()
 
     def on_scale_changed(self, text):
         self.settings_changed = True
@@ -118,7 +120,7 @@ class SettingsDialog(QDialog):
 
     def load_settings(self):
         """从设置中加载值"""
-        settings = self.parent.settings if self.parent else QSettings("../settings.ini", QSettings.IniFormat)
+        settings = self.parent.settings if self.parent else QSettings("settings.ini", QSettings.IniFormat)
 
         # 加载缩放设置
         scale = settings.value("ui/scale", "100%")
@@ -144,7 +146,7 @@ class SettingsDialog(QDialog):
 
     def save_settings(self):
         """保存设置到配置文件"""
-        settings = self.parent.settings if self.parent else QSettings("../settings.ini", QSettings.IniFormat)
+        settings = self.parent.settings if self.parent else QSettings("settings.ini", QSettings.IniFormat)
 
         # 保存缩放设置
         if self.scale_combo.currentText() == "自定义":
