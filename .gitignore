@@ -30,6 +30,9 @@ env/
 logs/
 *.log
 
+# 临时文件
+*.db
+
 # 私钥文件
 id_rsa
 id_rsa.pub
