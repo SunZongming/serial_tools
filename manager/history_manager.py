@@ -55,8 +55,20 @@ class HistoryManager:
         """返回最近 max_history 条历史命令"""
         cur = self.conn.cursor()
         return [row[0] for row in cur.execute(
-            "SELECT cmd FROM history ORDER BY id DESC LIMIT ?", (self.max_history,)
+            "SELECT cmd FROM history ORDER BY id asc LIMIT ?", (self.max_history,)
         )]
+
+    def clear_history(self):
+        """清空历史记录"""
+        cur = self.conn.cursor()
+        cur.execute("DELETE FROM history")
+        self.conn.commit()
 
     def close(self):
         self.conn.close()
+
+    def delete_history(self, param):
+        """删除指定历史记录"""
+        cur = self.conn.cursor()
+        cur.execute("DELETE FROM history WHERE cmd=?", (param,))
+        self.conn.commit()

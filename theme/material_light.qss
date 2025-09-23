@@ -1,6 +1,6 @@
 /* 全局字体与背景 */
 QWidget {
-    background-color: #FFFFFF;
+    background-color: #f3f3f3;
     color: #000000;
     font-family: "Roboto", "Segoe UI", sans-serif;
     font-size: 14px;
@@ -51,6 +51,14 @@ QLineEdit:focus, QTextEdit:focus {
     border: 1px solid #1976D2;
 }
 
+QListWidget {
+    background-color: #FFFFFF;
+    border: 1px solid #CCCCCC;
+    border-radius: 4px;
+    padding: 4px;
+    color: #000000;
+}
+
 /* 标签 */
 QLabel {
     color: #333333;
@@ -70,7 +78,21 @@ QComboBox:hover {
 QComboBox:disabled {
     background-color: #E0E0E0;
 }
-
+QComboBox:drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border: none;
+}
+QComboBox::down-arrow {
+    image: url("icon/arrow_drop_down_24dp_333333_FILL0_wght400_GRAD0_opsz24.svg");
+    width: 24px;
+    height: 24px;
+    margin-right: 6px;
+}
+QComboBox::down-arrow:on {
+    image: url("/icon/arrow_drop_up_24dp_333333_FILL0_wght400_GRAD0_opsz24.svg");
+}
 /* 滚动条 */
 QScrollBar:vertical {
     border: none;

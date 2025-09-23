@@ -46,6 +46,14 @@ QLineEdit:focus, QTextEdit:focus {
     border: 1px solid #0D7377;
 }
 
+QListWidget {
+    background-color: #1E1E1E;
+    border: 1px solid #2C2C2C;
+    border-radius: 4px;
+    padding: 4px;
+    color: #ffffff;
+}
+
 /* 标签 */
 QLabel {
     color: #E0E0E0;
@@ -61,6 +69,21 @@ QComboBox {
 }
 QComboBox:hover {
     border: 1px solid #0D7377;
+}
+QComboBox:drop-down {
+    subcontrol-origin: padding;
+    subcontrol-position: top right;
+    width: 20px;
+    border: none;
+}
+QComboBox::down-arrow {
+    image: url("icon/arrow_drop_down_24dp_E0E0E0_FILL0_wght400_GRAD0_opsz24.svg");
+    width: 24px;
+    height: 24px;
+    margin-right: 6px;
+}
+QComboBox::down-arrow:on {
+    image: url("/icon/arrow_drop_up_24dp_E0E0E0_FILL0_wght400_GRAD0_opsz24.svg");
 }
 
 /* 滚动条 */

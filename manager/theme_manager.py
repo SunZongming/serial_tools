@@ -36,8 +36,7 @@ class ThemeManager:
 
     def apply_qss(self, theme_file):
         with open(theme_file, "r", encoding="utf-8") as f:
-            print("正在加载主题文件:", theme_file)
-            # print("主题文件内容:", f.read())
+            print("加载主题文件:", theme_file)
             self.app.setStyleSheet(f.read())
 
     def apply_light_theme(self):
@@ -58,7 +57,6 @@ class ThemeManager:
 
     def get_icon_color(self):
         """获取图标颜色"""
-        print("图标颜色:", self.icon_color)
         return self.icon_color
 
     # 判断系统是否暗色模式

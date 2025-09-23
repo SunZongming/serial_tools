@@ -85,7 +85,9 @@ class SettingsDialog(QDialog):
 
         # 按钮框
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        button_box.button(QDialogButtonBox.Ok).setText("确定")
         button_box.accepted.connect(self.accept)
+        button_box.button(QDialogButtonBox.Cancel).setText("取消")
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
 
