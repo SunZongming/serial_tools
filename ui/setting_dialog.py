@@ -1,7 +1,7 @@
 from PyQt5.QtCore import QSettings
 from PyQt5.QtWidgets import (QDialog, QVBoxLayout, QHBoxLayout, QLabel,
                              QComboBox, QGroupBox, QSpinBox,
-                             QCheckBox, QDialogButtonBox, QMessageBox, QPushButton)
+                             QCheckBox, QDialogButtonBox, QMessageBox, QPushButton, QFileDialog)
 
 
 class SettingsDialog(QDialog):
@@ -59,6 +59,11 @@ class SettingsDialog(QDialog):
         self.preview_btn.clicked.connect(self.preview_theme)
         display_layout.addWidget(self.preview_btn)
 
+        # 打开设置的按钮
+        self.image_btn = QPushButton("选择背景图片")
+        self.image_btn.clicked.connect(self.open_settings)
+        display_layout.addWidget(self.image_btn)
+
         display_group.setLayout(display_layout)
         layout.addWidget(display_group)
 
@@ -76,12 +81,21 @@ class SettingsDialog(QDialog):
         serial_layout.addLayout(baud_layout)
 
         # 自动连接
-        self.auto_connect_check = QCheckBox("启动时自动连接串口")
+        self.auto_connect_check = QCheckBox("启动时自动连接串口(会影响启动速度，不建议启用)")
         self.auto_connect_check.stateChanged.connect(self.on_settings_changed)
         serial_layout.addWidget(self.auto_connect_check)
-
         serial_group.setLayout(serial_layout)
         layout.addWidget(serial_group)
+
+        # 其他设置
+        other_group = QGroupBox("其他设置")
+        other_layout = QVBoxLayout()
+        # 记录日志文件
+        self.logging_status_check = QCheckBox("记录日志文件")
+        self.logging_status_check.stateChanged.connect(self.on_settings_changed)
+        other_layout.addWidget(self.logging_status_check)
+        other_group.setLayout(other_layout)
+        layout.addWidget(other_group)
 
         # 按钮框
         button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -142,6 +156,7 @@ class SettingsDialog(QDialog):
         self.theme_combo.setCurrentText(settings.value("ui/theme", "系统默认"))
         self.baud_combo.setCurrentText(settings.value("serial/default_baud", "115200"))
         self.auto_connect_check.setChecked(settings.value("serial/auto_connect", False, type=bool))
+        self.logging_status_check.setChecked(self.parent.settings.value("logging/status", True, type=bool))
 
         # 重置更改标志
         self.settings_changed = False
@@ -160,6 +175,8 @@ class SettingsDialog(QDialog):
         settings.setValue("ui/theme", self.theme_combo.currentText())
         settings.setValue("serial/default_baud", self.baud_combo.currentText())
         settings.setValue("serial/auto_connect", self.auto_connect_check.isChecked())
+        print("记录日志: ", self.logging_status_check.isChecked())
+        settings.setValue("logging/status", self.logging_status_check.isChecked())
 
         settings.sync()  # 确保设置立即保存
         return True
@@ -194,3 +211,51 @@ class SettingsDialog(QDialog):
                     self.parent.apply_settings()
 
                 super().accept()
+
+    def open_settings(self):
+        # 打开设置对话框（这里简化，直接调用选择图片）
+        self.choose_background_image()
+
+    def choose_background_image(self):
+        # 弹出文件选择对话框，让用户选图片
+        file_path, _ = QFileDialog.getOpenFileName(
+            self,
+            "选择背景图片",
+            "",  # 起始目录
+            "图片文件 (*.png *.jpg *.jpeg *.bmp)"  # 文件过滤器
+        )
+
+        if file_path:  # 如果用户选中了文件
+            self.set_background_image(file_path)
+            self.save_background_to_settings(file_path)  # 保存路径
+
+    def set_background_image(self, image_path):
+        print(f"设置背景图片: {image_path}")
+        if not image_path:
+            self.setStyleSheet(f"""
+                        QMainWindow {{
+                        }}
+                    """)
+            return
+        # 方法：通过样式表设置背景图片
+        self.setStyleSheet(f"""
+            QMainWindow {{
+                background-image: url("{image_path}");
+                background-repeat: no-repeat;
+                background-position: center;
+                background-attachment: fixed;
+            }}
+        """)
+
+    def save_background_to_settings(self, image_path):
+        # 保存背景图片路径到 QSettings（ini 文件）
+        settings = self.parent.settings if self.parent else QSettings("settings.ini", QSettings.IniFormat)
+        settings.setValue("ui/image_path", image_path)
+        settings.sync()  # 确保写入磁盘
+
+    def load_background_from_settings(self):
+        # 启动时尝试加载上一次用户设置的背景图片
+        settings = self.parent.settings if self.parent else QSettings("settings.ini", QSettings.IniFormat)
+        image_path = settings.value("ui/image_path", "")  # 默认为空
+        if image_path and isinstance(image_path, str) and image_path.strip():
+            self.set_background_image(image_path)

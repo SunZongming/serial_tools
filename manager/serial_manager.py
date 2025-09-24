@@ -33,10 +33,18 @@ class SerialManager:
             self.ser.close()
         self.ser = None
 
-    def send(self, data: str):
+    def send(self, data: str, hex_flag=False, end=b"\r\n"):
         """发送数据"""
+        print(f"发送数据: {data}, hex_flag: {hex_flag}, end: {end}")
         if self.ser and self.ser.is_open:
-            self.ser.write(data.encode("utf-8") + b"\r\n")  # 默认加换行
+            if hex_flag:
+                data = data.upper().replace(" ", "")
+                if len(data) % 2 != 0:
+                    data += "0"
+                data = bytes.fromhex(data)  # 去空格后转字节
+                self.ser.write(data + end)
+            else:
+                self.ser.write(data.encode("utf-8") + end)  # 默认加换行
             return True
         return False
 

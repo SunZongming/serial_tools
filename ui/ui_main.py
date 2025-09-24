@@ -2,13 +2,14 @@ import os
 import platform
 import re
 import subprocess
+import time
 
 import qtawesome as qta
 from PyQt5.QtCore import QSettings, Qt, QSize, QTimer
-from PyQt5.QtGui import QPixmap
+from PyQt5.QtGui import QPixmap, QPainterPath, QRegion, QPainter, QPen, QColor
 from PyQt5.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QPushButton, QComboBox, QTextEdit, QListWidget, \
     QListWidgetItem, QSizePolicy, QDialog, QMainWindow, QMessageBox, QApplication, \
-    QSpacerItem, QCheckBox, QSpinBox, QInputDialog
+    QSpacerItem, QCheckBox, QSpinBox, QInputDialog, QAbstractItemView
 
 from manager.device_manager import DeviceManager
 from manager.history_manager import HistoryManager
@@ -53,6 +54,7 @@ class SerialTool(QMainWindow):
         self.auto_thread = None
         self.receiver_thread = None
         self._is_port_open = False
+        self.logging_flag = self.settings.value("logging/status", True, type=bool)
 
         # 当前硬件配置
         self.current_device = None
@@ -60,22 +62,24 @@ class SerialTool(QMainWindow):
 
         # 创建状态栏
         self.statusBar().showMessage("就绪")
+        self.statusBar().setObjectName("status_bar")
         self.serial_status_label = QLabel("🔴 串口未连接")
         self.statusBar().addPermanentWidget(self.serial_status_label)
 
         # 设置中心窗口部件
         central_widget = QWidget()
+        central_widget.setObjectName("central_widget")
         self.setCentralWidget(central_widget)
 
         # 创建串口UI
         self.setup_serial_ui(central_widget)
 
         # 创建自定义标题栏
-        self.setup_custom_titlebar()
+        self.setup_custom_titlebar(central_widget)
 
         # 初始化时加载一次
-        self.load_initial_settings()
         self.refresh_ports()
+        self.load_initial_settings()
         self.load_history_ui()
 
     def setup_serial_ui(self, central_widget):
@@ -160,11 +164,32 @@ class SerialTool(QMainWindow):
         # 指令列表
         left_col = QVBoxLayout()
         left_col.addWidget(QLabel("指令列表 (双击发送):"))
+        cmd_layout = QHBoxLayout()
         self.delete_cmdlist_btn = QPushButton("删除选中指令")
         self.delete_cmdlist_btn.clicked.connect(self.delete_cmdlist_item)
-        cmd_layout = QHBoxLayout()
         cmd_layout.addWidget(self.delete_cmdlist_btn)
+        # 上移
+        self.up_cmdlist_btn = QPushButton("上移")
+        self.up_cmdlist_btn.clicked.connect(self.up_cmdlist_item)
+        cmd_layout.addWidget(self.up_cmdlist_btn)
+        # 置顶
+        self.top_cmdlist_btn = QPushButton("置顶")
+        self.top_cmdlist_btn.clicked.connect(self.top_cmdlist_item)
+        cmd_layout.addWidget(self.top_cmdlist_btn)
+        # 下移
+        self.down_cmdlist_btn = QPushButton("下移")
+        self.down_cmdlist_btn.clicked.connect(self.down_cmdlist_item)
+        cmd_layout.addWidget(self.down_cmdlist_btn)
+        # 置底
+        self.bottom_cmdlist_btn = QPushButton("置底")
+        self.bottom_cmdlist_btn.clicked.connect(self.bottom_cmdlist_item)
+        cmd_layout.addWidget(self.bottom_cmdlist_btn)
+
         self.cmd_list = QListWidget()
+        # 启用拖动
+        self.cmd_list.setDragEnabled(True)
+        # 允许内部拖放（即在自身列表中重新排序）
+        self.cmd_list.setDragDropMode(QAbstractItemView.InternalMove)
         self.cmd_list.itemDoubleClicked.connect(self.send_list_item_command)
         self.device_cb.currentIndexChanged.connect(self.change_device)
         left_col.addLayout(cmd_layout)
@@ -245,7 +270,7 @@ class SerialTool(QMainWindow):
         # 发送按钮
         btn_list = QVBoxLayout()
         # hex 发送
-        self.hex_check_box = QCheckBox("HEX")
+        self.hex_check_box = QCheckBox("HEX(自动补0)")
         self.hex_check_box.setChecked(False)
         self.hex_check_box.stateChanged.connect(self.hex_check_box_changed)
         # 追加回车
@@ -279,7 +304,7 @@ class SerialTool(QMainWindow):
         central_widget.setLayout(layout)
 
     # ------------------------- 自定义标题栏 -------------------------
-    def setup_custom_titlebar(self):
+    def setup_custom_titlebar(self, central_widget):
         """创建自定义标题栏"""
         titlebar_widget = QWidget()
         titlebar_widget.setObjectName("TitleBar")
@@ -289,6 +314,7 @@ class SerialTool(QMainWindow):
         titlebar_layout.setSpacing(5)
 
         self.title_label = QLabel("串口调试工具 V1.0")
+        self.title_label.setObjectName("title_label")
         self.title_label.setPixmap(QPixmap("icon/logo.jpeg").scaled(30, 30))
         titlebar_layout.addWidget(self.title_label)
 
@@ -345,7 +371,29 @@ class SerialTool(QMainWindow):
         self.close_btn.clicked.connect(self.close)
         titlebar_layout.addWidget(self.close_btn)
 
+        # central_widget.setWidget(titlebar_widget)
         self.setMenuWidget(titlebar_widget)
+
+    def showEvent(self, event):
+        super().showEvent(event)
+
+    def paintEvent(self, event):
+        painter = QPainter(self)
+        painter.setPen(QPen(QColor("#aaaaaa"), 1))  # 灰色，2px 宽
+        painter.setBrush(Qt.NoBrush)
+        painter.drawRoundedRect(self.rect().adjusted(1, 1, -1, -1), 15, 15)
+
+    def set_rounded_corners(self, radius, weight, height):
+        return
+        path = QPainterPath()
+        path.addRoundedRect(0, 0, weight, height, radius, radius)
+        region = QRegion(path.toFillPolygon().toPolygon())
+        self.setMask(region)
+
+    def resizeEvent(self, event):
+        self.set_rounded_corners(8, self.width(), self.height())
+        if self.isMaximized():
+            self.set_rounded_corners(0, self.width(), self.height())
 
     def toggle_maximize(self):
         """切换最大化状态"""
@@ -410,6 +458,7 @@ class SerialTool(QMainWindow):
 
     def apply_settings(self):
         """应用所有设置"""
+        print("应用设置")
         # 更新波特率
         default_baud = self.settings.value("serial/default_baud", "115200")
         self.baudrate_combo.setCurrentText(default_baud)
@@ -421,6 +470,15 @@ class SerialTool(QMainWindow):
 
         # 显示设置已应用的消息
         self.statusBar().showMessage("设置已应用", 3000)
+
+        self.logging_flag = self.settings.value("logging/status", True, type=bool)
+        print(f"日志已{'' if self.logging_flag else '不'}启用")
+        if self.auto_thread:
+            self.auto_thread.set_logging_flag(self.logging_flag)
+            print("更新自动化线程的日志设置")
+        if self.log_mgr:
+            self.log_mgr.set_logging_flag(self.logging_flag)
+            print("更新日志管理器的日志设置")
 
     def load_initial_settings(self):
         """应用初始设置"""
@@ -441,6 +499,18 @@ class SerialTool(QMainWindow):
             theme = self.settings.value("ui/theme", "系统默认")
             self.theme_manager.apply_theme(theme)
             self.update_toolbar_icons()
+            auto_connect = self.settings.value("serial/auto_connect", False, type=bool)
+            if auto_connect:
+                self.toggle_serial()
+            self.logging_flag = self.settings.value("logging/status", True, type=bool)
+            print(f"日志已{'' if self.logging_flag else '不'}启用")
+            if self.auto_thread:
+                self.auto_thread.set_logging_flag(self.logging_flag)
+            if self.log_mgr:
+                self.log_mgr.set_logging_flag(self.logging_flag)
+
+            # 启动时尝试加载上一次用户设置的背景图片
+            self.theme_manager.load_background_from_settings()
         except Exception as e:
             print(f"加载初始设置时出错: {e}")
 
@@ -499,7 +569,7 @@ class SerialTool(QMainWindow):
             self.open_btn.setText("关闭串口")
             self.connect_btn.setText("断开")
             self.op_output.append(f"串口已打开: {port} @ {baud_rate}, {bytesize}{parity}{stop_bits}")
-            self.log_mgr.write(f"串口已打开: {port} @ {baud_rate}, {bytesize}{parity}{stop_bits}")
+            self.log_mgr.write(f"串口已打开: {port} @ {baud_rate}, {bytesize}{parity}{stop_bits}", "debug")
             self.statusBar().showMessage(f"串口已打开: {port} @ {baud_rate}, {bytesize}{parity}{stop_bits}")
             self.serial_status_label.setText(f"🟢 串口已连接: {port} @ {baud_rate}, {bytesize}{parity}{stop_bits}")
         else:
@@ -519,6 +589,7 @@ class SerialTool(QMainWindow):
     def send_command(self):
         """发送命令（支持循环发送）"""
         # 如果已经在发送，就停止
+        print("发送数据")
         if hasattr(self, "send_timer") and self.send_timer.isActive():
             self.send_timer.stop()
             self.sending_flag = False
@@ -554,10 +625,11 @@ class SerialTool(QMainWindow):
             return
 
         cmd = self.lines[self.index]
-        if self.serial.send(cmd):
+        if self.serial.send(cmd, self.hex_check_box.isChecked(),
+                            end=b"\n\r" if self.append_enter_check_box.isChecked() else b""):
             self.op_output.append(f"➡️ 已发送: {cmd}")
-            self.log_mgr.write(f"➡️ 已发送: {cmd}")
-            self.history.save_history(cmd)
+            self.log_mgr.write(f"➡️ 已发送: {cmd}", "debug")
+            self.history.save_history(cmd, self.hex_check_box.isChecked(), self.append_enter_check_box.isChecked())
             self.load_history_ui()
         else:
             self.op_output.append("❌ 发送失败，串口未打开")
@@ -578,11 +650,14 @@ class SerialTool(QMainWindow):
 
     def send_list_item_command(self, item: QListWidgetItem):
         self.cmd_input.setText(item.text())
+        self.hex_check_box.setChecked(bool(item.data(Qt.UserRole + 1)))
+        self.append_enter_check_box.setChecked(bool(item.data(Qt.UserRole + 2)))
         self.send_command()
 
     def hex_check_box_changed(self):
         if self.hex_check_box.isChecked():
             self.cmd_input.textChanged.connect(self.format_hex_input)
+            self.format_hex_input()
         else:
             self.cmd_input.textChanged.disconnect(self.format_hex_input)
 
@@ -658,8 +733,46 @@ class SerialTool(QMainWindow):
 
     def delete_cmdlist_item(self):
         """删除命令"""
+        if self.cmd_list.currentItem() is None:
+            return
+        self.cmd_list.takeItem(self.cmd_list.row(self.cmd_list.currentItem()))
+        self.save_device_commands()
 
-        pass
+    def up_cmdlist_item(self):
+        """上移条目"""
+        current_row = self.cmd_list.currentRow()
+        if current_row <= 0:
+            return  # 已经在顶部
+        item = self.cmd_list.takeItem(current_row)
+        self.cmd_list.insertItem(current_row - 1, item)
+        self.cmd_list.setCurrentRow(current_row - 1)
+
+    def top_cmdlist_item(self):
+        """置顶条目"""
+        current_row = self.cmd_list.currentRow()
+        if current_row <= 0:
+            return  # 已经在顶部
+        item = self.cmd_list.takeItem(current_row)
+        self.cmd_list.insertItem(0, item)
+        self.cmd_list.setCurrentRow(0)
+
+    def down_cmdlist_item(self):
+        """下移条目"""
+        current_row = self.cmd_list.currentRow()
+        if current_row >= self.cmd_list.count() - 1:
+            return  # 已经在底部
+        item = self.cmd_list.takeItem(current_row)
+        self.cmd_list.insertItem(current_row + 1, item)
+        self.cmd_list.setCurrentRow(current_row + 1)
+
+    def bottom_cmdlist_item(self):
+        """置底条目"""
+        current_row = self.cmd_list.currentRow()
+        if current_row >= self.cmd_list.count() - 1:
+            return  # 已经在底部
+        item = self.cmd_list.takeItem(current_row)
+        self.cmd_list.insertItem(self.cmd_list.count() - 1, item)
+        self.cmd_list.setCurrentRow(self.cmd_list.count() - 1)
 
     def change_device(self):
         """切换硬件配置"""
@@ -668,15 +781,22 @@ class SerialTool(QMainWindow):
     # ----------------------- 历史记录 ------------------------
     def add_history_to_cmdlist(self):
         """将历史记录添加到命令列表"""
+        print('add_history_to_cmdlist')
         if self.history_list.currentItem() is None:
             return
-        self.cmd_list.insertItem(0, QListWidgetItem(self.history_list.currentItem().text()))
+        print(self.history_list.currentItem().text())
+        cmd_list_item = QListWidgetItem(self.history_list.currentItem().text())
+        cmd_list_item.setData(Qt.UserRole + 1, self.history_list.currentItem().data(Qt.UserRole + 1))
+        cmd_list_item.setData(Qt.UserRole + 2, self.history_list.currentItem().data(Qt.UserRole + 2))
+        self.cmd_list.insertItem(0, cmd_list_item)
 
     def delete_selected_history(self):
         """删除选中的历史记录"""
         if self.history_list.currentItem() is None:
             return
-        self.history.delete_history(self.history_list.currentItem().text())
+        self.history.delete_history(self.history_list.currentItem().text(),
+                                    self.history_list.currentItem().data(Qt.UserRole + 1),
+                                    self.history_list.currentItem().data(Qt.UserRole + 2))
         self.load_history_ui()
 
     def clear_history(self):
@@ -691,12 +811,17 @@ class SerialTool(QMainWindow):
         self.statusBar().showMessage("数据已清除", 2000)
 
     def load_history_ui(self):
+        """加载历史记录"""
+        print("加载历史记录")
         self.history_list.clear()
-        for cmd in self.history.load_history():
-            self.add_history_item(cmd)
+        for cmd, hex_flag, append_enter_flag in self.history.load_history():
+            self.add_history_item(cmd, hex_flag, append_enter_flag)
 
-    def add_history_item(self, cmd):
+    def add_history_item(self, cmd, hex_flag, append_enter_flag):
+        """添加历史记录条目"""
         item = QListWidgetItem(cmd)
+        item.setData(Qt.UserRole + 1, hex_flag)
+        item.setData(Qt.UserRole + 2, append_enter_flag)
         self.history_list.insertItem(0, item)
 
     def open_log_dir(self):
@@ -737,7 +862,8 @@ class SerialTool(QMainWindow):
             serial_mgr=self.serial,
             log_mgr=self.log_mgr,
             interval_ms=500,
-            loops=1
+            loops=1,
+            logging_flag=self.logging_flag,
         )
         self.auto_thread.log_signal.connect(lambda msg: self.output.append(msg))
         self.auto_thread.finished_signal.connect(self.auto_finished)
@@ -746,7 +872,7 @@ class SerialTool(QMainWindow):
         self.start_auto_btn.setEnabled(False)
         self.stop_auto_btn.setEnabled(True)
         self.op_output.append("自动化开始")
-        self.log_mgr.write("自动化开始")
+        self.log_mgr.write("自动化开始", "debug")
 
     def stop_automation(self):
         if self.auto_thread:
@@ -778,11 +904,53 @@ class SerialTool(QMainWindow):
 
     # -------------------- 关闭 --------------------
     def closeEvent(self, event):
-        if self.auto_thread:
-            self.auto_thread.stop()
-        self.serial.close()
-        self.history.close()
-        # 保存窗口大小和位置
-        self.settings.setValue("window/size", self.size())
-        self.settings.setValue("window/position", self.pos())
+        print("====== 开始关闭程序 ======")
+
+        try:
+            if self.auto_thread is not None:
+                print("[1] 正在停止 auto_thread...")
+                start = time.perf_counter()
+                self.auto_thread.stop()
+                elapsed = time.perf_counter() - start
+                print(f"[1] auto_thread 停止耗时：{elapsed:.3f}s")
+        except Exception as e:
+            print(f"[1] 停止 auto_thread 出错：{e}")
+
+        try:
+            if hasattr(self, 'receiver_thread') and self.receiver_thread is not None:
+                print("[2] 正在停止 receiver_thread...")
+                start = time.perf_counter()
+                self.receiver_thread.stop()
+                elapsed = time.perf_counter() - start
+                print(f"[2] receiver_thread 停止耗时：{elapsed:.3f}s")
+        except Exception as e:
+            print(f"[2] 停止 receiver_thread 出错：{e}")
+
+        try:
+            print("[3] 正在关闭串口...")
+            start = time.perf_counter()
+            self.serial.close()
+            elapsed = time.perf_counter() - start
+            print(f"[3] 串口关闭耗时：{elapsed:.3f}s")
+        except Exception as e:
+            print(f"[3] 关闭串口出错：{e}")
+
+        try:
+            print("[4] 正在关闭 history...")
+            start = time.perf_counter()
+            self.history.close()
+            elapsed = time.perf_counter() - start
+            print(f"[4] history 关闭耗时：{elapsed:.3f}s")
+        except Exception as e:
+            print(f"[4] 关闭 history 出错：{e}")
+
+        try:
+            print("[5] 正在保存窗口大小和位置...")
+            self.settings.setValue("window/size", self.size())
+            self.settings.setValue("window/position", self.pos())
+        except Exception as e:
+            print(f"[5] 保存窗口状态出错：{e}")
+
+        # 确保调用父类关闭逻辑
         super().closeEvent(event)
+        print("====== 程序已关闭 ======")

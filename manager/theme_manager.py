@@ -100,3 +100,29 @@ class ThemeManager:
                 return False
 
         return False  # 默认亮色
+
+
+    def load_background_from_settings(self):
+        # 启动时尝试加载上一次用户设置的背景图片
+        image_path = self.settings.value("ui/image_path", "")  # 默认为空
+        if image_path and isinstance(image_path, str) and image_path.strip():
+            self.set_background_image(image_path)
+
+    def set_background_image(self, image_path):
+        print(f"设置背景图片: {image_path}")
+        if not image_path:
+            self.app.setStyleSheet(f"""
+                        QMainWindow {{
+                        }}
+                    """)
+            return
+        # 方法：通过样式表设置背景图片
+        self.app.setStyleSheet(f"""
+            QMainWindow {{
+                background-image: url("{image_path}");
+                blur: 5px;
+                background-repeat: no-repeat;
+                background-position: center;
+                background-attachment: fixed;
+            }}
+        """)

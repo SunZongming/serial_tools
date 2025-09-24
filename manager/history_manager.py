@@ -18,6 +18,14 @@ class HistoryManager:
                            AUTOINCREMENT,
                            cmd
                            TEXT,
+                           hex_flag
+                           INTEGER
+                           default
+                           0,
+                           append_enter_flag
+                           INTEGER
+                           default
+                           0,
                            ts
                            TIMESTAMP
                            DEFAULT
@@ -25,19 +33,22 @@ class HistoryManager:
                        )""")
         self.conn.commit()
 
-    def save_history(self, cmd):
+    def save_history(self, cmd, hex_flag, append_enter_flag):
         """保存历史记录"""
+        print(f"保存历史记录: {cmd}, {hex_flag}, {append_enter_flag}")
         cur = self.conn.cursor()
 
         # 避免连续重复
-        row = cur.execute("SELECT cmd FROM history ORDER BY id DESC LIMIT 1").fetchone()
-        if row and row[0] == cmd:
+        row = cur.execute("SELECT cmd, hex_flag, append_enter_flag FROM history ORDER BY id DESC LIMIT 1").fetchone()
+        if row and row[0] == cmd and row[1] == hex_flag and row[2] == append_enter_flag:
             return
 
         # 删除旧的相同记录
-        cur.execute("DELETE FROM history WHERE cmd=?", (cmd,))
+        cur.execute("DELETE FROM history WHERE cmd=? and hex_flag=? and append_enter_flag=?",
+                    (cmd, hex_flag, append_enter_flag))
         # 插入新记录
-        cur.execute("INSERT INTO history (cmd) VALUES (?)", (cmd,))
+        cur.execute("INSERT INTO history (cmd, hex_flag, append_enter_flag) VALUES (?, ?, ?)",
+                    (cmd, hex_flag, append_enter_flag))
         self.conn.commit()
 
         # 保留最新 max_history 条
@@ -54,8 +65,8 @@ class HistoryManager:
     def load_history(self):
         """返回最近 max_history 条历史命令"""
         cur = self.conn.cursor()
-        return [row[0] for row in cur.execute(
-            "SELECT cmd FROM history ORDER BY id asc LIMIT ?", (self.max_history,)
+        return [row for row in cur.execute(
+            "SELECT cmd, hex_flag, append_enter_flag FROM history ORDER BY id asc LIMIT ?", (self.max_history,)
         )]
 
     def clear_history(self):
@@ -67,8 +78,9 @@ class HistoryManager:
     def close(self):
         self.conn.close()
 
-    def delete_history(self, param):
+    def delete_history(self, cmd, hex_flag, append_enter_flag):
         """删除指定历史记录"""
         cur = self.conn.cursor()
-        cur.execute("DELETE FROM history WHERE cmd=?", (param,))
+        cur.execute("DELETE FROM history WHERE cmd=? and hex_flag=? and append_enter_flag=?",
+                    (cmd, hex_flag, append_enter_flag))
         self.conn.commit()

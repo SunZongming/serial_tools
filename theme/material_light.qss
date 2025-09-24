@@ -1,28 +1,39 @@
 /* 全局字体与背景 */
 QWidget {
-    background-color: #f3f3f3;
+    background-color: rgba(243, 243, 243, 0.3);
     color: #000000;
     font-family: "Roboto", "Segoe UI", sans-serif;
     font-size: 14px;
 }
+QWidget#central_widget {
+    border-left: 1px solid #cccccc;
+    border-right: 1px solid #cccccc;
+}
 
-/*QMainWindow {
-    background-color: #f0f0f0;
-    border: 1px solid #cccccc;
-    border-radius: 8px;
-}*/
 QWidget#TitleBar {
     background-color: #f3f3f3;
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
+    border-left: 1px solid #cccccc;
+    border-right: 1px solid #cccccc;
+    border-top: 1px solid #cccccc;
 }
 QWidget#TitleBar QLabel {
     color: #333333;
 }
 
+QWidget#status_bar {
+    background-color: #f3f3f3;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    border-left: 1px solid #cccccc;
+    border-right: 1px solid #cccccc;
+    border-bottom: 1px solid #cccccc;
+}
+
 /* 按钮 */
 QPushButton {
-    background-color: #F5F5F5;
+    background-color: rgba(255, 255, 255, 0.3);
     color: #000000;
     border: 1px solid #CCCCCC;
     border-radius: 6px;
@@ -41,7 +52,7 @@ QPushButton:pressed {
 
 /* 输入框 */
 QLineEdit, QTextEdit {
-    background-color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.3);
     border: 1px solid #CCCCCC;
     border-radius: 4px;
     padding: 4px;
@@ -52,7 +63,7 @@ QLineEdit:focus, QTextEdit:focus {
 }
 
 QListWidget {
-    background-color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.3);
     border: 1px solid #CCCCCC;
     border-radius: 4px;
     padding: 4px;
@@ -63,10 +74,13 @@ QListWidget {
 QLabel {
     color: #333333;
 }
+QLabel#TitleLabel {
+    border-left-top-radius: 8px;
+}
 
 /* 下拉框 */
 QComboBox {
-    background-color: #FFFFFF;
+    background-color: rgba(255, 255, 255, 0.3);
     border: 1px solid #CCCCCC;
     border-radius: 4px;
     padding: 4px;

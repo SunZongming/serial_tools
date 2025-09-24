@@ -1,6 +1,6 @@
 import time
 
-from PyQt5.QtCore import QThread, pyqtSignal
+from PyQt5.QtCore import QThread, pyqtSignal, QSettings
 
 
 class AutomationThread(QThread):
@@ -8,7 +8,7 @@ class AutomationThread(QThread):
     send_signal = pyqtSignal(str)  # 实际发送到串口
     finished_signal = pyqtSignal()
 
-    def __init__(self, cmds, serial_mgr, log_mgr, interval_ms=500, loops=1):
+    def __init__(self, cmds, serial_mgr, log_mgr, interval_ms=500, loops=1, logging_flag=True):
         super().__init__()
         self.cmds = cmds[:]
         self.serial = serial_mgr
@@ -16,8 +16,13 @@ class AutomationThread(QThread):
         self.interval_ms = max(1, interval_ms)
         self.loops = max(1, loops)
         self._running = True
+        self.logging_flag = logging_flag
 
-    def run(self):
+    def set_logging_flag(self, flag):
+        print(f"设置自动化日志记录状态: {flag}")
+        self.logging_flag = flag
+
+    def run(self, hex_flag=False, end=b"\r\n"):
         try:
             total_steps = self.loops * len(self.cmds)
             step = 0
@@ -33,7 +38,7 @@ class AutomationThread(QThread):
                     self._log(f"[自动发送] ({step}/{total_steps}) {cmd}")
                     # 发送指令
                     self.send_signal.emit(cmd)
-                    self.serial.send(cmd)
+                    self.serial.send(cmd, hex_flag, end)
                     # 立即写日志
                     self._log(f"发送: {cmd}")
 
@@ -65,7 +70,7 @@ class AutomationThread(QThread):
                     pass
         return lines
 
-    def _log(self, msg):
+    def _log(self, msg, level="info"):
         """同时写UI和日志文件"""
         self.log_signal.emit(msg)
         if self.log_mgr:
