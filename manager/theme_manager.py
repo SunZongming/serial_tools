@@ -34,22 +34,36 @@ class ThemeManager:
         else:
             self.apply_light_theme()
 
-    def apply_qss(self, theme_file):
+    def apply_qss(self, theme_file, image_path):
         with open(theme_file, "r", encoding="utf-8") as f:
-            print("加载主题文件:", theme_file)
-            self.app.setStyleSheet(f.read())
+            print("加载主题文件:", theme_file, image_path)
+            style = ""
+            if image_path:
+                style += f"""
+                    QMainWindow {{
+                        background-image: url("{image_path}");
+                        blur: 5px;
+                        background-repeat: no-repeat;
+                        background-position: center;
+                        background-attachment: fixed;
+                    }}
+                """
+            style += f.read()
+            self.app.setStyleSheet(style)
 
     def apply_light_theme(self):
         """应用浅色主题"""
         self.icon_color = "#000000"
         self.app.setStyle("Fusion")
-        self.apply_qss("theme/material_light.qss")
+        image_path = self.settings.value("ui/image_path", "")  # 默认为空
+        self.apply_qss("theme/material_light.qss", image_path)
 
     def apply_dark_theme(self):
         """应用深色主题"""
         self.icon_color = "#FFFFFF"
         self.app.setStyle("Fusion")
-        self.apply_qss("theme/material_dark.qss")
+        image_path = self.settings.value("ui/image_path", "")  # 默认为空
+        self.apply_qss("theme/material_dark.qss", image_path)
 
     def get_current_theme(self):
         """获取当前主题"""
@@ -117,12 +131,3 @@ class ThemeManager:
                     """)
             return
         # 方法：通过样式表设置背景图片
-        self.app.setStyleSheet(f"""
-            QMainWindow {{
-                background-image: url("{image_path}");
-                blur: 5px;
-                background-repeat: no-repeat;
-                background-position: center;
-                background-attachment: fixed;
-            }}
-        """)

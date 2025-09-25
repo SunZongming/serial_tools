@@ -1,6 +1,6 @@
 /* 全局字体与背景 */
 QWidget {
-    background-color: #121212;
+    background-color: rgba(30, 30, 30, 0.3);
     color: #ffffff;
     font-family: "Roboto", "Segoe UI", sans-serif;
     font-size: 14px;
@@ -12,7 +12,7 @@ QWidget#central_widget {
 
 
 QWidget#TitleBar {
-    background-color: #1E1E1E;
+    background-color: rgba(30, 30, 30, 0.3);
     border-top-left-radius: 8px;
     border-top-right-radius: 8px;
     border-left: 1px solid #2C2C2C;
@@ -20,11 +20,12 @@ QWidget#TitleBar {
     border-top: 1px solid #2C2C2C;
 }
 QWidget#TitleBar QLabel {
+    background-color: transparent;
     color: #cccccc;
 }
 
 QWidget#status_bar {
-    background-color: #1E1E1E;
+    background-color: rgba(30, 30, 30, 0.3);
     border-bottom-left-radius: 8px;
     border-bottom-right-radius: 8px;
     border-left: 1px solid #2C2C2C;
@@ -34,7 +35,7 @@ QWidget#status_bar {
 
 /* 按钮 */
 QPushButton {
-    background-color: #1E1E1E;
+    background-color: transparent;
     color: #ffffff;
     border: 1px solid #2C2C2C;
     border-radius: 6px;
@@ -53,7 +54,7 @@ QPushButton:pressed {
 
 /* 输入框 */
 QLineEdit, QTextEdit {
-    background-color: #1E1E1E;
+    background-color: rgba(30, 30, 30, 0.3);
     border: 1px solid #2C2C2C;
     border-radius: 4px;
     padding: 4px;
@@ -64,7 +65,7 @@ QLineEdit:focus, QTextEdit:focus {
 }
 
 QListWidget {
-    background-color: #1E1E1E;
+    background-color: rgba(30, 30, 30, 0.3);
     border: 1px solid #2C2C2C;
     border-radius: 4px;
     padding: 4px;
@@ -73,6 +74,7 @@ QListWidget {
 
 /* 标签 */
 QLabel {
+    background-color: transparent;
     color: #E0E0E0;
 }
 QLabel#TitleLabel {
@@ -81,7 +83,7 @@ QLabel#TitleLabel {
 
 /* 下拉框 */
 QComboBox {
-    background-color: #1E1E1E;
+    background-color: rgba(30, 30, 30, 0.3);
     border: 1px solid #2C2C2C;
     border-radius: 4px;
     padding: 4px;
@@ -103,7 +105,7 @@ QComboBox::down-arrow {
     margin-right: 6px;
 }
 QComboBox::down-arrow:on {
-    image: url("/icon/arrow_drop_up_24dp_E0E0E0_FILL0_wght400_GRAD0_opsz24.svg");
+    image: url("icon/arrow_drop_up_24dp_E0E0E0_FILL0_wght400_GRAD0_opsz24.svg");
 }
 
 /* 滚动条 */
@@ -145,4 +147,37 @@ QPushButton#SettingsBtn, QPushButton#ConnectBtn, QPushButton#ClearBtn, QPushButt
 }
 QPushButton#SettingsBtn:hover, QPushButton#ConnectBtn:hover, QPushButton#ClearBtn:hover, QPushButton#AboutBtn:hover {
     background-color: #2A2A2A;
+}
+
+
+/* 文本样式 */
+QCheckBox {
+    background-color: transparent;
+    color: white;
+    font-size: 16px;
+}
+
+/* 保证前面的小方块一直显示，并有边框，防止消失 */
+QCheckBox::indicator {
+    width: 18px;
+    height: 18px;
+}
+
+/* 勾选后：不设置背景色，让系统自动显示 "✓" */
+QCheckBox::indicator:checked {
+    background-image: url("icon/check_box_16dp_E0E0E0_FILL0_wght400_GRAD0_opsz20.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px;
+}
+
+QCheckBox::indicator:unchecked {
+    background-image: url("icon/check_box_outline_blank_16dp_E0E0E0_FILL0_wght400_GRAD0_opsz20.svg");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 18px;
+}
+
+QSizeGrip {
+    background-color: transparent;
 }

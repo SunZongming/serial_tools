@@ -819,7 +819,7 @@ class SerialTool(QMainWindow):
 
     def add_history_item(self, cmd, hex_flag, append_enter_flag):
         """添加历史记录条目"""
-        item = QListWidgetItem(cmd)
+        item = QListWidgetItem(cmd + " | " + ("hex" if hex_flag else "str") + " | " + ("append enter" if append_enter_flag else ""))
         item.setData(Qt.UserRole + 1, hex_flag)
         item.setData(Qt.UserRole + 2, append_enter_flag)
         self.history_list.insertItem(0, item)

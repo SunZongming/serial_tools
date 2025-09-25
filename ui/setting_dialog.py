@@ -60,9 +60,14 @@ class SettingsDialog(QDialog):
         display_layout.addWidget(self.preview_btn)
 
         # 打开设置的按钮
+        bg_img_layout = QHBoxLayout()
         self.image_btn = QPushButton("选择背景图片")
         self.image_btn.clicked.connect(self.open_settings)
-        display_layout.addWidget(self.image_btn)
+        bg_img_layout.addWidget(self.image_btn)
+        self.remove_bg_img_btn = QPushButton("删除背景图")
+        self.remove_bg_img_btn.clicked.connect(self.remove_bg_img)
+        bg_img_layout.addWidget(self.remove_bg_img_btn)
+        display_layout.addLayout(bg_img_layout)
 
         display_group.setLayout(display_layout)
         layout.addWidget(display_group)
@@ -209,12 +214,15 @@ class SettingsDialog(QDialog):
                     # 其他设置可以立即应用
                 if self.parent:
                     self.parent.apply_settings()
-
-                super().accept()
+        super().accept()
 
     def open_settings(self):
         # 打开设置对话框（这里简化，直接调用选择图片）
         self.choose_background_image()
+
+    def remove_bg_img(self):
+        """删除背景图片"""
+        self.save_background_to_settings("")
 
     def choose_background_image(self):
         # 弹出文件选择对话框，让用户选图片
@@ -226,36 +234,13 @@ class SettingsDialog(QDialog):
         )
 
         if file_path:  # 如果用户选中了文件
-            self.set_background_image(file_path)
+            self.settings_changed = True
             self.save_background_to_settings(file_path)  # 保存路径
-
-    def set_background_image(self, image_path):
-        print(f"设置背景图片: {image_path}")
-        if not image_path:
-            self.setStyleSheet(f"""
-                        QMainWindow {{
-                        }}
-                    """)
-            return
-        # 方法：通过样式表设置背景图片
-        self.setStyleSheet(f"""
-            QMainWindow {{
-                background-image: url("{image_path}");
-                background-repeat: no-repeat;
-                background-position: center;
-                background-attachment: fixed;
-            }}
-        """)
 
     def save_background_to_settings(self, image_path):
         # 保存背景图片路径到 QSettings（ini 文件）
         settings = self.parent.settings if self.parent else QSettings("settings.ini", QSettings.IniFormat)
         settings.setValue("ui/image_path", image_path)
         settings.sync()  # 确保写入磁盘
+        self.parent.apply_settings()
 
-    def load_background_from_settings(self):
-        # 启动时尝试加载上一次用户设置的背景图片
-        settings = self.parent.settings if self.parent else QSettings("settings.ini", QSettings.IniFormat)
-        image_path = settings.value("ui/image_path", "")  # 默认为空
-        if image_path and isinstance(image_path, str) and image_path.strip():
-            self.set_background_image(image_path)
